@@ -116,7 +116,3 @@ class game():
             self.timer += 1
             self.clock.tick(60)
 
-
-g = game()
-g.new()
-
