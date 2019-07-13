@@ -1,13 +1,11 @@
+from misc import button
 import pygame
-
 import ground
 import pipe
 import player
-from misc import button
 
 
-class game():
-
+class Game:
     def __init__(self, width=500, height=580):
         pygame.init()
 
@@ -27,14 +25,14 @@ class game():
         self.score = 0
 
         # game elements
-        self.background = self.load_image("res/background.png")
-        self.player = player.player(self)
-        self.pipe = pipe.pipe(self)
-        self.ground = ground.ground(self)
+        self.player = player.Player(self)
+        self.background = self.player._spritesheet.load_image("res/background.png")
+        self.pipe = pipe.Pipe(self)
+        self.ground = ground.Ground(self)
 
-        #button
-        self.restart_button = button.button(self.load_image("res/restart.png"), self.width // 2 - 68, self.height // 2 - 28, 132, 45)
-        self.game_over_button = button.button(self.player.spritesheet.get_image(390, 60, 105, 25), self.width // 2 - 78, self.height // 2 - 110, 163, 38)
+        # button
+        self.restart_button = button.Button(self.player._spritesheet.load_image("res/restart.png"), self.width // 2 - 68, self.height // 2 - 28, 132, 45)
+        self.game_over_button = button.Button(self.player._spritesheet.crop(390, 60, 105, 25), self.width // 2 - 78, self.height // 2 - 110, 163, 38)
         self.mouse_pos = None
 
     def update(self):
@@ -75,15 +73,14 @@ class game():
                 if event.key == pygame.K_SPACE:
                     if not self.gameOver:
                         self.player.jump()
+                    else:
+                        self.new()
                     if not self.start_game:
                         self.start_game = True
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.mouse_pos = pygame.mouse.get_pos()
-                if self.restart_button.isOver(self.mouse_pos):
-                    self.new()
-
-    def load_image(self, string):
-        return pygame.image.load(string).convert_alpha()
+                if self.restart_button.is_over(self.mouse_pos):
+                     self.new()
 
     def new(self):
         # re-initailize game variables
@@ -91,7 +88,7 @@ class game():
         self.start_game = False
         self.running = False
         self.clock = pygame.time.Clock()
-        self.player = player.player(self)
+        self.player = player.Player(self)
         self.score = 0
         self.pipe.reset_pipes()
 
@@ -104,11 +101,11 @@ class game():
             # check for events
             self.events()
 
-            #check score
+            # check score
             if self.score > self.high_score:
                 self.high_score = self.score
 
-            #check for collisions
+            # check for collisions
             if not self.gameOver and self.pipe.checkCollision():
                 self.gameOver = True
 
@@ -117,5 +114,5 @@ class game():
             self.clock.tick(60)
 
 if __name__ == "__main__":
-    game().run()
+    Game().run()
 
