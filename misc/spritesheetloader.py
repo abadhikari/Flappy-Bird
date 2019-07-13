@@ -16,6 +16,5 @@ class SpriteSheetLoader:
         image.set_colorkey((0, 0, 0))  # Assuming black works as the transparent color
         return image
 
-    @staticmethod
-    def load_image(string):
+    def load_image(self, string):
         return pygame.image.load(string).convert_alpha()

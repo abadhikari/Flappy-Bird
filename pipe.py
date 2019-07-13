@@ -56,10 +56,10 @@ class Pipe:
     def checkCollision(self):
         # only used rectangles for collision detection so had to hard code several values
         player_rect = pygame.Rect(self._game.player._pos.x + 22, self._game.player._pos.y + 25, 27, 25)
-        t_pipe_rect = pygame.Rect(self.t_pipes.peek_first().get_rect())
-        t_pipe_rect.left, t_pipe_rect.top = self.t_pipes_pos.peek_first()[0], self.t_pipes_pos.peek_first()[1] - 8
-        b_pipe_rect = pygame.Rect(self.b_pipes.peek_first().get_rect())
-        b_pipe_rect.left, b_pipe_rect.top = self.b_pipes_pos.peek_first()[0], self.b_pipes_pos.peek_first()[1] + 8
+        t_pipe_rect = pygame.Rect(self.t_pipes.peek_head().get_rect())
+        t_pipe_rect.left, t_pipe_rect.top = self.t_pipes_pos.peek_head()[0], self.t_pipes_pos.peek_head()[1] - 8
+        b_pipe_rect = pygame.Rect(self.b_pipes.peek_head().get_rect())
+        b_pipe_rect.left, b_pipe_rect.top = self.b_pipes_pos.peek_head()[0], self.b_pipes_pos.peek_head()[1] + 8
 
         # if bird collides with a pipe
         if player_rect.colliderect(t_pipe_rect) or player_rect.colliderect(b_pipe_rect):
@@ -77,7 +77,7 @@ class Pipe:
         top_pos = [250]
 
         if len(self.b_pipes) != 0:
-            top_pos = self.t_pipes_pos.peek_last()
+            top_pos = self.t_pipes_pos.peek_tail()
 
         random_number = random.randrange(100, 260)
         top_pipe_pos = [top_pos[0] + 250, random_number - pipe_size[1]]
