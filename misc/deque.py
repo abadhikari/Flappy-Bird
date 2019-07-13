@@ -48,10 +48,10 @@ class Deque:
     def remove_last(self):
         return self._remove(self._tail)
 
-    def peek_head(self):
+    def peek_first(self):
         return self._head.data
 
-    def peek_tail(self):
+    def peek_last(self):
         return self._tail.data
 
     def __len__(self):
