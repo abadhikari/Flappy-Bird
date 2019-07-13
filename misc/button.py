@@ -3,7 +3,7 @@ import pygame
 
 class Button:
     def __init__(self, img, x, y, width, height, text=''):
-        self._button_img = pygame.transform.scale(img, (width, height))
+        self._img = pygame.transform.scale(img, (width, height))
         self._x = x
         self._y = y
         self._width = width
@@ -12,7 +12,7 @@ class Button:
 
     def draw(self, win):
         # Call this method to draw the button onto the screen
-        win.blit(self._button_img, (self._x, self._y))
+        win.blit(self._img, (self._x, self._y))
 
     def mouse_is_over(self, pos):
         # pos is the mouse position, which is a tuple of (x,y) coordinates

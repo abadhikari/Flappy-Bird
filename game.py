@@ -52,7 +52,7 @@ class Game:
         score_text = my_font.render("Score: {0}".format(self.score), 1, (0, 0, 0))
 
         # score on the top lefthand side if the game isn't over, else, place it in the middle of the screen
-        score_x,score_y = (5, 10) if not self.gameOver else (self.width//2-55,self.height//2-75)
+        score_x,score_y = (5,10) if not self.gameOver else (self.width//2-55,self.height//2-75)
 
         self.screen.blit(high_score_text, (score_x, score_y))
         self.screen.blit(score_text, (score_x + 13, score_y + 20))
