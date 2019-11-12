@@ -1,118 +1,184 @@
-from misc import button
+import time
+
 import pygame
-import ground
-import pipe
-import player
+
+from background import Background
+from bird import Bird
+from game_over_menu import GameOverMenu
+from ground import Ground
+from misc.center_gui import center_screen
+from misc.collision_detection import CollisionDetection
+from pipe import Pipe
+from score_tracker import ScoreTracker
+from sprite_sheet.sprite_sheet import SpriteSheet
+from misc.constants import Constants
 
 
 class Game:
-    def __init__(self, width=500, height=580):
+    def __init__(self):
         pygame.init()
+        self._screen = pygame.display.set_mode((1, 1))
+        self._sprite_sheet_scale = Constants.SPRITE_SCALE
+        self._sprite_sheet = SpriteSheet()
+        self._sprite_sheet.init(self._sprite_sheet_scale)
 
         # screen
-        self.width = width
-        self.height = height
-        self.screen = pygame.display.set_mode((width, height))
+        self._width = self._sprite_sheet.get_size(self._sprite_sheet.day_background)[0]
+        self._height = self._sprite_sheet.get_size(self._sprite_sheet.day_background)[1]
+        center_screen((self._width, self._height))
+        self._screen = pygame.display.set_mode((self._width, self._height))
         pygame.display.set_caption("Flappy Bird")
 
+        # class instances
+        self._bird = Bird(self)
+        self._pipe = Pipe(self)
+        self._ground = Ground(self)
+        self._background = Background(self)
+
         # game variables
-        self.clock = pygame.time.Clock()
-        self.start_game = False
-        self.gameOver = False
-        self.running = False
-        self.timer = 0
-        self.high_score = 0
-        self.score = 0
+        self._running = True
+        self._start = False
+        self._mouse_pos = None
+        self._score_tracker = ScoreTracker(self)
 
-        # game elements
-        self.player = player.Player(self)
-        self.background = self.player._spritesheet.load_image("res/background.png")
-        self.pipe = pipe.Pipe(self)
-        self.ground = ground.Ground(self)
+        # collision detection
+        self._collision_detection = CollisionDetection(self)
 
-        # button
-        self.restart_button = button.Button(self.player._spritesheet.load_image("res/restart.png"), self.width // 2 - 68, self.height // 2 - 28, 132, 45)
-        self.game_over_button = button.Button(self.player._spritesheet.crop(390, 60, 105, 25), self.width // 2 - 78, self.height // 2 - 110, 163, 38)
-        self.mouse_pos = None
+        # fps variables
+        self._fps = 60
+        self._prev_time = time.time()
+        self._curr_time = 0
+        self._delta = 0
+        self._fps_counter = 0
+        self._time_per_frame = 1 / self._fps
+        self._elapsed_time = 0
+        self._lag = 0
 
-    def update(self):
-        self.player.update()
-        if not self.gameOver and self.start_game:
-            self.pipe.update()
+        # game over variables
+        self._game_over = False
+        self._game_over_menu = GameOverMenu(self)
 
-    def draw(self):
-        self.screen.blit(self.background, (0, 0))
-        self.pipe.draw()
-        self.ground.draw()
-        self.player.draw()
+    def _update(self):
+        # update the sprite positions in the game screen
+        instances = (self._ground, self._bird) if not self._start else (self._background, self._pipe, self._ground, self._bird, self._score_tracker)
+        for instance in instances:
+            if not self._game_over:
+                instance.update()
 
-        # render the score and high score
-        my_font = pygame.font.SysFont("monospace", 16)
-        high_score_text = my_font.render("HighScore: {0}".format(self.high_score), 1, (0, 0, 0))
-        score_text = my_font.render("Score: {0}".format(self.score), 1, (0, 0, 0))
+        if self._collision_detection.check_collision():
+            self._game_over = True
 
-        # score on the top lefthand side if the game isn't over, else, place it in the middle of the screen
-        score_x,score_y = (5, 10) if not self.gameOver else (self.width//2-55,self.height//2-75)
-
-        self.screen.blit(high_score_text, (score_x, score_y))
-        self.screen.blit(score_text, (score_x + 13, score_y + 20))
-
-        if self.gameOver:
-            self.game_over_button.draw(self.screen)
-            self.restart_button.draw(self.screen)
-
+    def _draw(self):
+        # render the sprites to the game screen
+        instances = (self._background, self._pipe, self._ground, self._bird, self._score_tracker)
+        for instance in instances:
+            instance.draw()
+        if self._game_over:
+            self._game_over_menu.draw()
+            self._score_tracker.draw()
         pygame.display.flip()
 
-    def events(self):
+    def _events(self):
+        # checks for events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.running = False
+                self._running = False
+                self._score_tracker.high_score_to_json()
                 pygame.quit()
                 exit(0)
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    if not self.gameOver:
-                        self.player.jump()
+                    if self._game_over:
+                        self.new_game()
                     else:
-                        self.new()
-                    if not self.start_game:
-                        self.start_game = True
+                        self._bird.jump()
+                        self._start = True
             if event.type == pygame.MOUSEBUTTONDOWN:
                 self.mouse_pos = pygame.mouse.get_pos()
-                if self.restart_button.is_over(self.mouse_pos):
-                     self.new()
+                if self._game_over and self._game_over_menu.get_restart_button().mouse_is_over(self.mouse_pos):
+                    self.new_game()
 
-    def new(self):
-        # re-initailize game variables
-        self.gameOver = False
-        self.start_game = False
-        self.running = False
-        self.clock = pygame.time.Clock()
-        self.player = player.Player(self)
-        self.score = 0
-        self.pipe.reset_pipes()
+    def _run(self):
+        # run an instance of Flappy Bird
+        self._running = True
+        while self._running:
+            self._curr_time = time.time()
+            self._elapsed_time = self._curr_time - self._prev_time
+            self._prev_time = self._curr_time
+            self._delta += self._elapsed_time
+            self._lag += self._elapsed_time
 
-        self.run()
+            self._events()
 
-    def run(self):
-        self.running = True
-        while self.running:
-            self.update()
-            # check for events
-            self.events()
+            while self._lag > self._time_per_frame:
+                self._update()
+                self._fps_counter += 1
+                self._lag -= self._time_per_frame
 
-            # check score
-            if self.score > self.high_score:
-                self.high_score = self.score
+            self._draw()
 
-            # check for collisions
-            if not self.gameOver and self.pipe.checkCollision():
-                self.gameOver = True
+            # fps counter
+            if self._delta > 1:
+                print(self._fps_counter)
+                self._fps_counter = 0
+                self._delta = 0
 
-            self.draw()
-            self.timer += 1
-            self.clock.tick(60)
+    def new_game(self):
+        # reset all the game variables
+        self._running = False
+        self._game_over = False
+        self._start = False
+        self._bird = Bird(self)
+        self._pipe = Pipe(self)
+        self._ground = Ground(self)
+        self._background = Background(self)
 
+        # reset score
+        self._score_tracker.reset()
+
+        # run the game once again
+        self._run()
+
+    def get_screen(self):
+        return self._screen
+
+    def get_pipe(self):
+        return self._pipe
+
+    def get_ground(self):
+        return self._ground
+
+    def get_bird(self):
+        return self._bird
+
+    def get_background(self):
+        return self._background
+
+    def get_sprite_sheet(self):
+        return self._sprite_sheet
+
+    def get_frame_elapsed_time(self):
+        return self._time_per_frame
+
+    def get_fps(self):
+        return self._fps
+
+    def get_fps_counter(self):
+        return self._fps_counter
+
+    def get_collision_detection(self):
+        return self._collision_detection
+
+    def is_over(self):
+        return self._game_over
+
+    def get_score(self):
+        return self._score_tracker.get_score()
+
+    def get_scale(self):
+        return self._sprite_sheet_scale
+
+    def started(self):
+        return self._start
 if __name__ == "__main__":
-    Game().run()
-
+    Game().new_game()

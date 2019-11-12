@@ -1,92 +1,62 @@
-from misc.deque import Deque
+from game_object import GameObject
 import random
-import pygame
 
 
-class Pipe:
+class Pipe(GameObject):
+    """
+    Class encompasses everything that involves the pipes in Flappy Bird
+    """
     def __init__(self, game):
-        self._game = game
-        self._pipe = pygame.transform.scale(self._game.player._spritesheet.crop(84, 320, 28, 160), (80, 450))
-        self._flipped_pipe = pygame.transform.flip(self._pipe, False, True)
+        super().__init__(game)
+        self._up_pipe = self._sprite_sheet.up_pipe
+        self._down_pipe = self._sprite_sheet.down_pipe
+        self._speed = 58.33 * self._game.get_scale()
 
-        # pipe variables
-        self.b_pipes = Deque()
-        self.t_pipes = Deque()
-        self.b_pipes_pos = Deque()
-        self.t_pipes_pos = Deque()
-
-        # fill pipes
-        for i in range(3):
-            self.make_pipe()
+        self._up_pipe_pos_list = []
+        self._down_pipe_pos_list = []
+        self._init_pos_lists()
 
     def update(self):
-        # only move the pipes if the game is still going on
-        if self._game.start_game:
-            # pipes
-            b_head, t_head, b_pos_head, t_pos_head = self.b_pipes._head, self.t_pipes._head, self.b_pipes_pos._head, self.t_pipes_pos._head
-            for i in range(len(self.b_pipes)):
-                if b_pos_head.data[0] < -80:
-                    self.make_pipe()
-                    self.remove_first_pipes()
-
-                if b_pos_head.data[0] - 15 in [self._game.player._pos.x - y for y in range(7)]:
-                    self._game.score += 1
-
-                b_pos_head.data[0] -= 3.5
-                t_pos_head.data[0] -= 3.5
-
-                b_head, t_head, b_pos_head, t_pos_head = b_head.link, t_head.link, b_pos_head.link, t_pos_head.link
+        # update the sprite position in the game screen
+        up_pipe_pos, down_pipe_pos = None, None
+        for i, pos_list in enumerate([self._down_pipe_pos_list, self._up_pipe_pos_list]):
+            for j, pos in enumerate(pos_list):
+                pos.x = pos.x - self._speed * self._game.get_frame_elapsed_time()
+                if pos.x < -self.get_size(self._up_pipe)[0]:
+                    if i == 0:
+                        up_pipe_pos, down_pipe_pos = self._make_pipe_pair()
+                        pos_list[j] = self.vec(down_pipe_pos[0], down_pipe_pos[1])
+                    else:
+                        pos_list[j] = self.vec(up_pipe_pos[0], up_pipe_pos[1])
+                    pos.x = pos_list[j - 1].x + 83.33 * self._game.get_scale()
 
     def draw(self):
-        b_head, t_head, b_pos_head, t_pos_head = self.b_pipes._head, self.t_pipes._head, self.b_pipes_pos._head, self.t_pipes_pos._head
-        for i in range(len(self.b_pipes)):
-            self._game.screen.blit(b_head.data, b_pos_head.data)
-            self._game.screen.blit(t_head.data, t_pos_head.data)
-            b_head, t_head, b_pos_head, t_pos_head = b_head.link, t_head.link, b_pos_head.link,t_pos_head.link
+        # render sprites to the game screen
+        pipe_sprites = [self._down_pipe, self._up_pipe]
+        for i, pos_list in enumerate([self._down_pipe_pos_list, self._up_pipe_pos_list]):
+            for pos in pos_list:
+                self._game.get_screen().blit(pipe_sprites[i], (pos.x, pos.y))
 
-    def remove_first_pipes(self):
-        self.b_pipes.remove_first()
-        self.t_pipes.remove_first()
-        self.b_pipes_pos.remove_first()
-        self.t_pipes_pos.remove_first()
+    def _init_pos_lists(self):
+        # initialize the position of the pipe sprites
+        for i in range(2):
+            up_pipe_pos, down_pipe_pos = self._make_pipe_pair()
+            self._up_pipe_pos_list.append(self.vec(up_pipe_pos[0] + 83.33 * self._game.get_scale() * i, up_pipe_pos[1]))
+            self._down_pipe_pos_list.append(self.vec(down_pipe_pos[0] + 83.33 * self._game.get_scale() * i, down_pipe_pos[1]))
 
-    def reset_pipes(self):
-        self.__init__(self._game)
+    def _make_pipe_pair(self):
+        # returns a valid pair of positions that correspond to a pair of a top and bottom pipe
+        space_between_pipes = 46.67 * self._game.get_scale()
+        background_size = self.get_size(self._sprite_sheet.night_background)
+        random_number = random.randrange(int(33.33 * self._game.get_scale()), int(100 * self._game.get_scale()))
+        up_pipe_pos = [background_size[0], random_number + space_between_pipes]
+        down_pipe_pos = [background_size[0], random_number - self.get_size(self._up_pipe)[1]]
+        return up_pipe_pos, down_pipe_pos
 
-    def checkCollision(self):
-        # only used rectangles for collision detection so had to hard code several values
-        player_rect = pygame.Rect(self._game.player._pos.x + 22, self._game.player._pos.y + 25, 27, 25)
-        t_pipe_rect = pygame.Rect(self.t_pipes.peek_head().get_rect())
-        t_pipe_rect.left, t_pipe_rect.top = self.t_pipes_pos.peek_head()[0], self.t_pipes_pos.peek_head()[1] - 8
-        b_pipe_rect = pygame.Rect(self.b_pipes.peek_head().get_rect())
-        b_pipe_rect.left, b_pipe_rect.top = self.b_pipes_pos.peek_head()[0], self.b_pipes_pos.peek_head()[1] + 8
+    def get_pos_lists(self):
+        return self._down_pipe_pos_list, self._up_pipe_pos_list
 
-        # if bird collides with a pipe
-        if player_rect.colliderect(t_pipe_rect) or player_rect.colliderect(b_pipe_rect):
-            return True
-
-        # if bird hits the ground or goes too far above the screen
-        if self._game.player._pos.y >= 450 or self._game.player._pos.y < -100:
-            return True
-
-        return False
-
-    def make_pipe(self):
-        space_between_pipes = 140
-        pipe_size = self._pipe.get_rect().size
-        top_pos = [250]
-
-        if len(self.b_pipes) != 0:
-            top_pos = self.t_pipes_pos.peek_tail()
-
-        random_number = random.randrange(100, 260)
-        top_pipe_pos = [top_pos[0] + 250, random_number - pipe_size[1]]
-        bottom_pipe_pos = [top_pos[0] + 250, random_number + space_between_pipes]
-
-        self.b_pipes.add_last(self._pipe)
-        self.t_pipes.add_last(self._flipped_pipe)
-        self.b_pipes_pos.add_last(bottom_pipe_pos)
-        self.t_pipes_pos.add_last(top_pipe_pos)
-
+    def get_up_pipe(self):
+        return self._up_pipe
 
 
