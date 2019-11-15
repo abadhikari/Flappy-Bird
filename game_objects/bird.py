@@ -1,6 +1,7 @@
-from game_object import GameObject
-from misc.constants import Constants
 import math
+
+from game_objects.game_object import GameObject
+from misc.constants import Constants
 
 
 class Bird(GameObject):

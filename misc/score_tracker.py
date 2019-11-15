@@ -1,6 +1,7 @@
-from game_object import GameObject
 import json
 import os
+
+from game_objects.game_object import GameObject
 
 
 class ScoreTracker(GameObject):

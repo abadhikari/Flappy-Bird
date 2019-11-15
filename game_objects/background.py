@@ -1,5 +1,6 @@
-from game_object import GameObject
 import time
+
+from game_objects.game_object import GameObject
 
 
 class Background(GameObject):

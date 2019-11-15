@@ -1,5 +1,5 @@
+from game_objects.game_object import GameObject
 from misc.button import Button
-from game_object import GameObject
 
 
 class GameOverMenu(GameObject):

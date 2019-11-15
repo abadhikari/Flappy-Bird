@@ -2,16 +2,16 @@ import time
 
 import pygame
 
-from background import Background
-from bird import Bird
-from game_over_menu import GameOverMenu
-from ground import Ground
+from game_objects.background import Background
+from game_objects.bird import Bird
+from game_objects.ground import Ground
+from game_objects.pipe import Pipe
 from misc.center_gui import center_screen
 from misc.collision_detection import CollisionDetection
-from pipe import Pipe
-from score_tracker import ScoreTracker
-from sprite_sheet.sprite_sheet import SpriteSheet
 from misc.constants import Constants
+from misc.game_over_menu import GameOverMenu
+from misc.score_tracker import ScoreTracker
+from sprite_sheet.sprite_sheet import SpriteSheet
 
 
 class Game:

@@ -1,5 +1,6 @@
-from game_object import GameObject
 import random
+
+from game_objects.game_object import GameObject
 
 
 class Pipe(GameObject):
