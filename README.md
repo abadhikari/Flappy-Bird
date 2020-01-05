@@ -11,5 +11,5 @@ New Features:
 	
 	- The high score is recorded and stored in the highscore.json file. 
 
-To play: run the game file. 
+To play: run the game.py file.
 
